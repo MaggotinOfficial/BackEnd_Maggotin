@@ -5,9 +5,9 @@ djangorestframework_simplejwt==5.4.0
 Requests==2.32.3
 django-allauth
 dj-rest-auth
-django-cors-headers==3.18.0
+django-cors-headers==4.7.0
 django-filter==23.2
 django-extensions==3.2.1
 gunicorn
 psycopg2-binary==2.9.7
-django-storages==1.16.0
+django-storages==1.14.6
