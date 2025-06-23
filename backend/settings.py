@@ -124,7 +124,7 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 ENV = os.environ.get('DJANGO_ENV', 'development')
 
-if ENV == 'production':
+if ENV == 'uhuy':
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
