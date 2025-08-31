@@ -43,7 +43,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Password harus mengandung setidaknya satu karakter spesial.")
 
         # Validasi karakter pertama dan terakhir bukan angka
-        if value[0].isdigit() or value[-1].isdigit():
+        if value[0].isdigit():
             raise serializers.ValidationError("Password tidak boleh diawali atau diakhiri dengan angka.")
         
         # Validasi password tidak boleh sama dengan username atau username terbalik
