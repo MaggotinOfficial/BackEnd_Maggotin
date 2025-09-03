@@ -13,7 +13,7 @@ class Cycle(models.Model):
     name = models.CharField(max_length=100)  # Nama siklus
     egg_photo = models.ImageField(upload_to='egg_photos/')  # Foto telur maggot
     points = models.IntegerField(default=0)
-
+    
     def __str__(self):
         return f"Siklus untuk {self.user_id} dengan {self.name} pada {self.date}"
     
@@ -38,6 +38,21 @@ class Phase(models.Model):
     phase_name = models.CharField(max_length=50, choices=PHASE_CHOICES)  # Nama fase
     start_date = models.DateField()  # Tanggal mulai fase
     notes = models.TextField(null=True, blank=True)  # Catatan tambahan tentang fase
+    emissions = models.FloatField(default=0)
+
+    def calculate_emissions(self):
+        """
+        Hitung total emissions CO₂e dari semua waste di fase ini.
+        Rumus:
+            Methane emissions = total_waste (kg) × 0.851
+            CO₂e = Methane emissions × 27
+        """
+        # SEKARANG (basis kg):
+        total_waste_kg = sum(w.waste_amount for w in self.wastes.all())
+        methane_emissions = total_waste_kg * 0.851
+        co2e_emissions = methane_emissions * 27.0
+        return round(co2e_emissions, 2)
+
 
     def __str__(self):
         return f"{self.phase_name} - {self.cycle.name}"
@@ -76,29 +91,47 @@ def create_phase_notification(sender, instance, created, **kwargs):
     if created or instance.phase_name in ['egg', 'larva', 'prepupa', 'pupa', 'bsf']:  # Semua fase kecuali 'harvest'
         check_and_notify_users_for_phase(instance)
 
+# Untuk Perhitungan Emisi Larvanya
+@receiver(post_save, sender=Phase)
+def calculate_emissions_on_larva_end(sender, instance, created, **kwargs):
+    if not created and instance.phase_name == 'larva' and instance.emissions == 0:
+        today = timezone.now().date()
+        if today >= instance.get_end_date():
+            # Disconnect the signal temporarily to prevent recursion
+            post_save.disconnect(calculate_emissions_on_larva_end, sender=Phase)
+            try:
+                emissions = instance.calculate_emissions()
+                instance.emissions = emissions
+                instance.save(update_fields=['emissions'])
+            finally:
+                # Reconnect the signal
+                post_save.connect(calculate_emissions_on_larva_end, sender=Phase)
+
+
+
 class Waste(models.Model):
     phase = models.ForeignKey(Phase, related_name='wastes', on_delete=models.CASCADE, default=1)  # Hubungkan ke fase
     waste_date = models.DateField(default=timezone.now)  # Tanggal default adalah hari ini
-    waste_amount = models.PositiveIntegerField()  # Jumlah sampah yang diolah (gram)
+    waste_amount = models.PositiveIntegerField()  # Jumlah sampah yang diolah (Kg)
     waste_photo = models.ImageField(upload_to='waste_photos/')  # Foto sampah
 
     def __str__(self):
-        return f"Waste {self.phase.phase_name} - {self.waste_amount} g"
+        return f"Waste {self.phase.phase_name} - {self.waste_amount} Kg"
 
     def display_amount_with_unit(self):
         """
         Mengembalikan jumlah sampah dengan satuan.
         """
-        return f"{self.waste_amount} g"
+        return f"{self.waste_amount} Kg"
     
 
 class LarvaHarvest(models.Model):
     phase = models.ForeignKey(Phase, related_name='larva_harvests', on_delete=models.CASCADE)  # Hubungkan ke fase
     harvest_date = models.DateField(default=timezone.now)  # Tanggal default adalah hari ini
-    total_harvest = models.PositiveIntegerField()  # Total panen maggot (gram)
-    total_for_sale = models.PositiveIntegerField()  # Total yang siap jual (gram)
-    total_for_breeding = models.PositiveIntegerField()  # Total untuk lanjut bibit (gram)
-    total_kasgot = models.PositiveIntegerField()  # Total kasgot (gram)
+    total_harvest = models.PositiveIntegerField()  # Total panen maggot (Kgram)
+    total_for_sale = models.PositiveIntegerField()  # Total yang siap jual (kgram)
+    total_for_breeding = models.PositiveIntegerField()  # Total untuk lanjut bibit (kgram)
+    total_kasgot = models.PositiveIntegerField()  # Total kasgot (kgram)
     harvest_photo = models.ImageField(upload_to='harvest_photos/')  # Foto hasil panen
 
     def __str__(self):
@@ -178,3 +211,13 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"Notification for {self.user.id if self.user else 'Unknown'}: {self.message}"
+
+class SensorData(models.Model):
+    phase = models.ForeignKey(Phase, related_name='sensor_data', on_delete=models.CASCADE, null=True, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    temperature = models.FloatField()
+    humidity = models.FloatField()
+
+    def __str__(self):
+        return f"Phase {self.phase.id} @ {self.timestamp} → Temp: {self.temperature}°C, Humidity: {self.humidity}%"
+

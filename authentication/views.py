@@ -144,10 +144,17 @@ class LeaderboardView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
     
 class UserDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    
     def get(self, request):
-        user = request.user
-        serializer = UserSerializer(user)
-        return Response(serializer.data)
+        # DRF otomatis 401 kalau tidak autentikasi (karena IsAuthenticated)
+        return Response(UserSerializer(request.user).data, status=200)
+    
+    # def get(self, request):
+    #     user = request.user
+    #     serializer = UserSerializer(user)
+    #     return Response(serializer.data)
     
 class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated]  # Memastikan pengguna sudah login

@@ -13,7 +13,7 @@ class CycleSerializer(serializers.ModelSerializer):
 class PhaseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Phase
-        fields = ['id', 'cycle', 'phase_name', 'start_date', 'notes', 'articles', 'videos']
+        fields = ['id', 'cycle', 'phase_name', 'start_date', 'notes', 'articles', 'videos', 'emissions']
 
 
 class WasteSerializer(serializers.ModelSerializer):
@@ -27,7 +27,7 @@ class WasteSerializer(serializers.ModelSerializer):
         """
         Mengembalikan jumlah sampah dengan satuan gram.
         """
-        return f"{obj.waste_amount} g"
+        return f"{obj.waste_amount} kg"
 
 
 class LarvaHarvestSerializer(serializers.ModelSerializer):
@@ -36,7 +36,7 @@ class LarvaHarvestSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'phase', 'harvest_date', 'total_harvest',
             'total_for_sale', 'total_for_breeding', 'total_kasgot', 'harvest_photo'
-        ]
+        ]   
 
 
 class EggHarvestSerializer(serializers.ModelSerializer):
@@ -77,3 +77,31 @@ class NotificationSerializer(serializers.ModelSerializer):
         model = Notification
         fields = ['id', 'user', 'message', 'is_read', 'created_at', 'cycle', 'phase']
         read_only_fields = ['user', 'created_at'] 
+
+
+class SensorDataSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SensorData
+        fields = ['id', 'phase', 'timestamp', 'temperature', 'humidity']
+
+
+class PhaseEmissionsSerializer(serializers.ModelSerializer):
+    articles = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    videos = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    total_waste_gram = serializers.SerializerMethodField()  # Total waste dalam gram
+    total_waste_kg = serializers.SerializerMethodField()    # Total waste dalam kg
+
+    class Meta:
+        model = Phase
+        fields = [
+            'id', 'cycle', 'phase_name', 'start_date', 'notes', 
+            'articles', 'videos', 'emissions',
+            'total_waste_gram', 'total_waste_kg'  # Tambahkan field baru
+        ]
+
+    def get_total_waste_gram(self, obj):
+        """Hitung total waste dalam gram."""
+        return sum(w.waste_amount for w in obj.wastes.all()) *1000
+
+    def get_total_waste_kg(self, obj):
+        return round(sum(w.waste_amount for w in obj.wastes.all()), 2)

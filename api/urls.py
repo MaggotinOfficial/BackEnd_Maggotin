@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ArticleViewSet, CycleViewSet, LarvaHarvestViewSet, WasteViewSet, EggHarvestViewSet, PhaseViewSet, YoutubeViewSet, NotificationViewSet
+from .views import ArticleViewSet, CycleViewSet, LarvaHarvestViewSet, SensorDataViewSet, WasteViewSet, EggHarvestViewSet, PhaseViewSet, YoutubeViewSet, NotificationViewSet
 
 router = DefaultRouter()
 router.register(r'cycles', CycleViewSet)
@@ -11,6 +11,7 @@ router.register(r'egg_harvests', EggHarvestViewSet)
 router.register(r'articles', ArticleViewSet)
 router.register(r'youtube', YoutubeViewSet)
 router.register(r'notifikasi', NotificationViewSet)
+router.register(r'sensor-data', SensorDataViewSet)
 
 
 urlpatterns = [

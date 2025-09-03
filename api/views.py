@@ -3,8 +3,8 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import get_user_model
-from .models import Article, Cycle, LarvaHarvest, Waste, EggHarvest, Phase, Youtube, Notification    
-from .serializers import CycleSerializer, LarvaHarvestSerializer, WasteSerializer, EggHarvestSerializer,PhaseSerializer, ArticleSerializer, YoutubeSerializer, NotificationSerializer
+from .models import Article, Cycle, LarvaHarvest, SensorData, Waste, EggHarvest, Phase, Youtube, Notification    
+from .serializers import CycleSerializer, LarvaHarvestSerializer, SensorDataSerializer, WasteSerializer, EggHarvestSerializer,PhaseSerializer, ArticleSerializer, YoutubeSerializer, NotificationSerializer, PhaseEmissionsSerializer
 
 User = get_user_model()
 
@@ -87,6 +87,47 @@ class PhaseViewSet(viewsets.ModelViewSet):
                 }, status=201)
         print(f"[DEBUG] Serializer Errors: {serializer.errors}")
         return Response(serializer.errors, status=400)
+    
+    # Untuk Calculasi Manual Emisinya
+    @action(detail=True, methods=['get', 'post'])  # Tambahkan 'get' di sini
+    def calculate_emissions(self, request, pk=None):
+        """
+        Hitung emissions untuk fase larva tertentu.
+        GET: Untuk nengok data emisi yang dah ada :)
+        POST: Untuk ngitung ulang emisi
+        """
+        phase = self.get_object()
+        
+        # Handle GET request (untuk debug/view data)
+        if request.method == 'GET':
+            serializer = PhaseEmissionsSerializer(phase)
+            return Response({
+                "phase_id": phase.id,
+                "current_emissions": phase.emissions,
+                "total_waste_kg": sum(w.waste_amount for w in phase.wastes.all()),
+                "phase_data": serializer.data,
+                "message": "Gunakan POST untuk menghitung ulang emisi."
+            })
+
+        # Handle POST request (logika perhitungan)
+        if phase.phase_name != 'larva':
+            return Response({"error": "Emissions hanya dapat dihitung pada fase larva."}, status=400)
+
+        emissions = phase.calculate_emissions()
+        phase.emissions = emissions
+        phase.save(update_fields=['emissions'])
+
+        serializer = PhaseEmissionsSerializer(phase)
+
+        return Response({
+            "phase_id": phase.id,
+            "emissions_calculated": emissions,
+            "phase": serializer.data,
+            "message": "Emissions berhasil dihitung."
+        })
+
+
+
 
 class WasteViewSet(viewsets.ModelViewSet):
     queryset = Waste.objects.all()
@@ -199,6 +240,23 @@ class NotificationViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(data=data)
         if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+    
+class SensorDataViewSet(viewsets.ModelViewSet):
+    queryset = SensorData.objects.all().order_by('-timestamp')
+    serializer_class = SensorDataSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            phase = serializer.validated_data['phase']
+            if phase.phase_name != 'larva':
+                return Response(
+                    {"error": "Sensor hanya dapat mencatat data pada fase larva."},
+                    status=400
+                )
             serializer.save()
             return Response(serializer.data, status=201)
         return Response(serializer.errors, status=400)

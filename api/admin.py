@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Cycle, Phase, Waste, LarvaHarvest, EggHarvest, Article, Youtube, Notification
+from .models import Cycle, Phase, SensorData, Waste, LarvaHarvest, EggHarvest, Article, Youtube, Notification
 
 
 class PhaseInline(admin.TabularInline):
@@ -32,10 +32,9 @@ class WasteAdmin(admin.ModelAdmin):
     list_filter = ('phase',)  # Filter berdasarkan Phase
 
     def display_amount_with_unit(self, obj):
-        # Menampilkan Jumlah Sampah pake Satuan gram
-        return f"{obj.waste_amount} g"
+        return f"{obj.waste_amount} kg"
+    display_amount_with_unit.short_description = "Jumlah Sampah (kg)"
 
-    display_amount_with_unit.short_description = "Jumlah Sampah (g)"  # Label kolom di admin
 
 admin.site.register(Waste, WasteAdmin)
 
@@ -80,3 +79,9 @@ class NotificationAdmin(admin.ModelAdmin):
     list_display = ['user', 'message', 'is_read', 'created_at', 'cycle', 'phase']
     search_fields = ['user', 'message']
     list_filter = ['is_read', 'created_at']
+
+@admin.register(SensorData)
+class SensorDataAdmin(admin.ModelAdmin):
+    list_display = ['phase', 'timestamp', 'temperature', 'humidity']
+    list_filter = ['phase__cycle', 'phase__phase_name']
+    search_fields = ['phase__cycle__name']

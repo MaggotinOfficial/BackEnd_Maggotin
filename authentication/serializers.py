@@ -1,13 +1,23 @@
 import re
 from rest_framework import serializers
+from django.db.models import Sum
+from api.models import Phase
 from .models import CustomUser
 from django.contrib.auth import get_user_model
 import logging
 
 class UserSerializer(serializers.ModelSerializer):
+    total_emissions = serializers.SerializerMethodField()
     class Meta:
         model = CustomUser
-        fields = ['id', 'username', 'email', 'location', 'points', 'profile_pics', 'total_harvest', 'total_waste'] 
+        fields = ['id', 'username', 'email', 'location', 'points', 'profile_pics', 'total_harvest', 'total_waste', 'total_emissions'] 
+        
+    def get_total_emissions(self, obj):
+        total = Phase.objects.filter (
+            cycle__user=obj,
+            phase_name='larva'
+        ).aggregate(total=Sum('emissions'))['total'] or 0.0
+        return float(total)
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True,)
@@ -51,7 +61,6 @@ class RegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Password tidak boleh sama dengan username.")
         if value.lower() == self.initial_data['username'][::-1].lower():
             raise serializers.ValidationError("Password tidak boleh sama dengan username terbalik.")
-        
         return value
     
     def create(self, validated_data):
