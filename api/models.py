@@ -213,11 +213,14 @@ class Notification(models.Model):
         return f"Notification for {self.user.id if self.user else 'Unknown'}: {self.message}"
 
 class SensorData(models.Model):
-    phase = models.ForeignKey(Phase, related_name='sensor_data', on_delete=models.CASCADE, null=True, blank=True)
+    # ganti dari:
+    # phase = models.ForeignKey(Phase, related_name='sensor_data', on_delete=models.CASCADE, null=True, blank=True)
+    cycle = models.ForeignKey(Cycle, related_name='sensor_data', on_delete=models.CASCADE)
     timestamp = models.DateTimeField(auto_now_add=True)
     temperature = models.FloatField()
     humidity = models.FloatField()
 
     def __str__(self):
-        return f"Phase {self.phase.id} @ {self.timestamp} → Temp: {self.temperature}°C, Humidity: {self.humidity}%"
+        return f"Cycle {self.cycle.id} @ {self.timestamp} → Temp: {self.temperature}°C, Humidity: {self.humidity}%"
+
 

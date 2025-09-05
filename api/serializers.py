@@ -28,6 +28,7 @@ class WasteSerializer(serializers.ModelSerializer):
         Mengembalikan jumlah sampah dengan satuan gram.
         """
         return f"{obj.waste_amount} kg"
+        return f"{obj.waste_amount} kg"
 
 
 class LarvaHarvestSerializer(serializers.ModelSerializer):
@@ -37,6 +38,7 @@ class LarvaHarvestSerializer(serializers.ModelSerializer):
             'id', 'phase', 'harvest_date', 'total_harvest',
             'total_for_sale', 'total_for_breeding', 'total_kasgot', 'harvest_photo'
         ]   
+         
 
 
 class EggHarvestSerializer(serializers.ModelSerializer):
@@ -82,7 +84,8 @@ class NotificationSerializer(serializers.ModelSerializer):
 class SensorDataSerializer(serializers.ModelSerializer):
     class Meta:
         model = SensorData
-        fields = ['id', 'phase', 'timestamp', 'temperature', 'humidity']
+        fields = ['id', 'cycle', 'timestamp', 'temperature', 'humidity']
+
 
 
 class PhaseEmissionsSerializer(serializers.ModelSerializer):
@@ -99,9 +102,9 @@ class PhaseEmissionsSerializer(serializers.ModelSerializer):
             'total_waste_gram', 'total_waste_kg'  # Tambahkan field baru
         ]
 
-    def get_total_waste_gram(self, obj):
-        """Hitung total waste dalam gram."""
-        return sum(w.waste_amount for w in obj.wastes.all()) *1000
+    # def get_total_waste_gram(self, obj):
+    #     """Hitung total waste dalam gram."""
+    #     return sum(w.waste_amount for w in obj.wastes.all()) * 1000
 
     def get_total_waste_kg(self, obj):
         return round(sum(w.waste_amount for w in obj.wastes.all()), 2)

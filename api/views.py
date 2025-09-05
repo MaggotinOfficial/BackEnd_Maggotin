@@ -244,19 +244,42 @@ class NotificationViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=201)
         return Response(serializer.errors, status=400)
     
+# class SensorDataViewSet(viewsets.ModelViewSet):
+#     queryset = SensorData.objects.all().order_by('-timestamp')
+#     serializer_class = SensorDataSerializer
+
+#     def create(self, request, *args, **kwargs):
+#         serializer = self.get_serializer(data=request.data)
+#         if serializer.is_valid():
+#             phase = serializer.validated_data['phase']
+#             if phase.phase_name != 'larva':
+#                 return Response(
+#                     {"error": "Sensor hanya dapat mencatat data pada fase larva."},
+#                     status=400
+#                 )
+#             serializer.save()
+#             return Response(serializer.data, status=201)
+#         return Response(serializer.errors, status=400)
+
+
 class SensorDataViewSet(viewsets.ModelViewSet):
     queryset = SensorData.objects.all().order_by('-timestamp')
     serializer_class = SensorDataSerializer
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            phase = serializer.validated_data['phase']
-            if phase.phase_name != 'larva':
-                return Response(
-                    {"error": "Sensor hanya dapat mencatat data pada fase larva."},
-                    status=400
-                )
-            serializer.save()
-            return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
+        serializer.is_valid(raise_exception=True)
+
+        cycle = serializer.validated_data['cycle']
+
+        # Pastikan cycle punya fase LARVA
+        larva_exists = Phase.objects.filter(cycle=cycle, phase_name='larva').exists()
+        if not larva_exists:
+            return Response(
+                {"error": "Cycle ini belum berada pada fase larva, sensor tidak boleh mencatat."},
+                status=400
+            )
+
+        instance = serializer.save()
+        return Response(self.get_serializer(instance).data, status=201)
+
