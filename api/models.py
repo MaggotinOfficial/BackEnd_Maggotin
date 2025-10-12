@@ -7,12 +7,31 @@ from django.dispatch import receiver
 
 User = get_user_model()
 
+class nameIoT(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return self.name
+
+
+class IoTData(models.Model):
+    """Data suhu & kelembapan yang dikirim box IoT."""
+    iot = models.ForeignKey(nameIoT, related_name='data', on_delete=models.CASCADE)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    temperature = models.FloatField()
+    humidity = models.FloatField()
+
+    def __str__(self):
+        return f"{self.iot.name} @ {self.timestamp:%Y-%m-%d %H:%M} → {self.temperature}°C / {self.humidity}%"
+
 class Cycle(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     date = models.DateField()  # Tanggal siklus
     name = models.CharField(max_length=100)  # Nama siklus
     egg_photo = models.ImageField(upload_to='egg_photos/')  # Foto telur maggot
     points = models.IntegerField(default=0)
+    iot = models.ForeignKey(nameIoT, on_delete=models.SET_NULL, null=True, blank=True, default=None)
     
     def __str__(self):
         return f"Siklus untuk {self.user_id} dengan {self.name} pada {self.date}"
@@ -222,5 +241,3 @@ class SensorData(models.Model):
 
     def __str__(self):
         return f"Cycle {self.cycle.id} @ {self.timestamp} → Temp: {self.temperature}°C, Humidity: {self.humidity}%"
-
-

@@ -1,13 +1,46 @@
 from rest_framework import serializers
 from .models import *
 
+class IoTDataSerializer(serializers.ModelSerializer):
+    iot_name = serializers.CharField(write_only=True, required=False)
+
+    class Meta:
+        model = IoTData
+        fields = ['id', 'iot', 'iot_name', 'timestamp', 'temperature', 'humidity']
+        read_only_fields = ['timestamp']
+
+    def create(self, validated_data):
+        # Jika user kirim iot_name, cari atau buat nameIoT
+        iot_name = validated_data.pop('iot_name', None)
+        if iot_name:
+            iot_obj, _ = nameIoT.objects.get_or_create(name=iot_name)
+            validated_data['iot'] = iot_obj
+        return super().create(validated_data)
+
+
+class nameIoTSerializer(serializers.ModelSerializer):
+    data = IoTDataSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = nameIoT
+        fields = ['id', 'name', 'description', 'data']
+
 class CycleSerializer(serializers.ModelSerializer):
     phases = serializers.PrimaryKeyRelatedField(many=True, read_only=True)  # Menambahkan relasi reverse
+    iot_data = serializers.SerializerMethodField()
 
     class Meta:
         model = Cycle
-        fields = ['id', 'date', 'name', 'egg_photo', 'phases', 'user', 'points'] 
+        fields = ['id', 'date', 'name', 'egg_photo', 'phases', 'user', 'points', 'iot', 'iot_data'] 
         read_only_fields = ['user'] 
+
+    def get_iot_data(self, obj):
+        # hanya tampilkan data IoT kalau fase LARVA sedang aktif
+        larva_exists = obj.phases.filter(phase_name='larva').exists()
+        if larva_exists and obj.iot:
+            latest_data = obj.iot.data.order_by('-timestamp')[:5]  # ambil 5 data terakhir
+            return IoTDataSerializer(latest_data, many=True).data
+        return None
     
 
 class PhaseSerializer(serializers.ModelSerializer):

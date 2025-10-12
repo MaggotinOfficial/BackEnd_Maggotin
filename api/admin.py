@@ -1,7 +1,9 @@
 from django.contrib import admin
-from .models import Cycle, Phase, SensorData, Waste, LarvaHarvest, EggHarvest, Article, Youtube, Notification
-from .models import Cycle, Phase, SensorData, Waste, LarvaHarvest, EggHarvest, Article, Youtube, Notification
+from .models import Cycle, Phase, SensorData, Waste, LarvaHarvest, EggHarvest, Article, Youtube, Notification, nameIoT
 
+class nameIoTAdmin(admin.ModelAdmin):
+    list_display = ['name', 'description']
+    search_fields = ['name']
 
 class PhaseInline(admin.TabularInline):
     model = Phase

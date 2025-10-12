@@ -3,10 +3,18 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import get_user_model
-from .models import Article, Cycle, LarvaHarvest, SensorData, Waste, EggHarvest, Phase, Youtube, Notification    
-from .serializers import CycleSerializer, LarvaHarvestSerializer, SensorDataSerializer, WasteSerializer, EggHarvestSerializer,PhaseSerializer, ArticleSerializer, YoutubeSerializer, NotificationSerializer, PhaseEmissionsSerializer
+from .models import Article, Cycle, LarvaHarvest, SensorData, Waste, EggHarvest, Phase, Youtube, Notification, nameIoT, IoTData
+from .serializers import CycleSerializer, LarvaHarvestSerializer, SensorDataSerializer, WasteSerializer, EggHarvestSerializer,PhaseSerializer, ArticleSerializer, YoutubeSerializer, NotificationSerializer, PhaseEmissionsSerializer, nameIoTSerializer, IoTDataSerializer
 
 User = get_user_model()
+
+class nameIoTViewSet(viewsets.ModelViewSet):
+    queryset = nameIoT.objects.all()
+    serializer_class = nameIoTSerializer
+
+class IoTDataViewSet(viewsets.ModelViewSet):
+    queryset = IoTData.objects.all().order_by('-timestamp')
+    serializer_class = IoTDataSerializer
 
 class CycleViewSet(viewsets.ModelViewSet):
     queryset = Cycle.objects.all()
@@ -16,6 +24,13 @@ class CycleViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Pastikan user dari request otomatis terhubung ke Cycle yang dibuat."""
         serializer.save(user=self.request.user)  
+
+    @action(detail=False, methods=['get'])
+    def with_iot(self, request):
+        """Ambil semua Cycle yang punya IoT Box."""
+        cycles = Cycle.objects.filter(iot__isnull=False)
+        serializer = self.get_serializer(cycles, many=True)
+        return Response(serializer.data)
 
     @action(detail=True, methods=['post'])
     def add_egg_harvest(self, request, pk=None):
