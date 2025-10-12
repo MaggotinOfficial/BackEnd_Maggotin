@@ -27,12 +27,32 @@ class nameIoTSerializer(serializers.ModelSerializer):
 
 class CycleSerializer(serializers.ModelSerializer):
     phases = serializers.PrimaryKeyRelatedField(many=True, read_only=True)  # Menambahkan relasi reverse
-    iot_data = serializers.SerializerMethodField()
+    iot_data = serializers.SerializerMethodField(read_only=True)
+    iot_name = serializers.CharField(write_only=True, required=False)
+
 
     class Meta:
         model = Cycle
-        fields = ['id', 'date', 'name', 'egg_photo', 'phases', 'user', 'points', 'iot', 'iot_data'] 
+        fields = ['id', 'date', 'name', 'egg_photo', 'phases', 'user', 'points', 'iot', 'iot_data', 'iot_name'] 
         read_only_fields = ['user'] 
+
+    def create(self, validated_data):
+        # Ambil nama IoT jika dikirim
+        iot_name = validated_data.pop('iot_name', None)
+
+        if iot_name:
+            # Coba cari IoT berdasarkan nama
+            try:
+                iot_instance = nameIoT.objects.get(name=iot_name)
+            except nameIoT.DoesNotExist:
+                # Kalau tidak ada, hentikan dan kirim error
+                raise serializers.ValidationError({
+                    "iot_name": f"IoT dengan nama '{iot_name}' tidak ditemukan. Silakan buat cycle ulang."
+                })
+            validated_data['iot'] = iot_instance
+
+        # Kalau iot_name tidak dikirim, biarkan saja (boleh tanpa IoT)
+        return super().create(validated_data)
 
     def get_iot_data(self, obj):
         # hanya tampilkan data IoT kalau fase LARVA sedang aktif
