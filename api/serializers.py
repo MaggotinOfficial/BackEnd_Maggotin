@@ -155,9 +155,9 @@ class PhaseEmissionsSerializer(serializers.ModelSerializer):
             'total_waste_gram', 'total_waste_kg'  # Tambahkan field baru
         ]
 
-    # def get_total_waste_gram(self, obj):
-    #     """Hitung total waste dalam gram."""
-    #     return sum(w.waste_amount for w in obj.wastes.all()) * 1000
+    def get_total_waste_gram(self, obj):
+        """Hitung total waste dalam gram."""
+        return sum(w.waste_amount for w in obj.wastes.all()) * 1000
 
     def get_total_waste_kg(self, obj):
         return round(sum(w.waste_amount for w in obj.wastes.all()), 2)
