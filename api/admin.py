@@ -1,9 +1,18 @@
 from django.contrib import admin
-from .models import Cycle, Phase, SensorData, Waste, LarvaHarvest, EggHarvest, Article, Youtube, Notification, nameIoT
+from .models import Cycle, Phase, SensorData, Waste, LarvaHarvest, EggHarvest, Article, Youtube, Notification, nameIoT, IoTData
 
+@admin.register(nameIoT)
 class nameIoTAdmin(admin.ModelAdmin):
     list_display = ['name', 'description']
     search_fields = ['name']
+    ordering = ['name']
+
+@admin.register(IoTData)
+class IoTDataAdmin(admin.ModelAdmin):
+    list_display = ['iot', 'timestamp', 'temperature', 'humidity']
+    search_fields = ['iot__name']
+    list_filter = ['iot', 'timestamp']
+    ordering = ['-timestamp']
 
 class PhaseInline(admin.TabularInline):
     model = Phase
