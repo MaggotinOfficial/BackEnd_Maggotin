@@ -14,8 +14,7 @@ class UserSerializer(serializers.ModelSerializer):
         
     def get_total_emissions(self, obj):
         total = Phase.objects.filter (
-            cycle__user=obj,
-            phase_name='larva'
+            cycle__user=obj
         ).aggregate(total=Sum('emissions'))['total'] or 0.0
         return float(total)
 
@@ -89,13 +88,13 @@ class LoginSerializer(serializers.Serializer):
             print(f"User ditemukan: {user.email}")  # Log user ditemukan
             print(f"Password di database: {user.password}")  # Log password hashed di DB
         except CustomUser.DoesNotExist:
-            raise serializers.ValidationError("Invalid login credentials")
+            raise serializers.ValidationError("Email tidak ditemukan.")
 
         # Verifikasi password
         if not user.check_password(data['password']):
             print(f"Password yang dimasukkan: {data['password']}")  # Log password input
             print("Password tidak valid")  # Log jika password tidak valid
-            raise serializers.ValidationError("Invalid login credentials")
+            raise serializers.ValidationError("Kombinasi email dan kata sandi tidak valid.")
 
         # Pastikan akun aktif
         if not user.is_active:
